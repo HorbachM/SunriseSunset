@@ -7,12 +7,38 @@
 //
 
 import UIKit
+import GooglePlaces
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, CLLocationManagerDelegate {
+    
+    var placesClient: GMSPlacesClient!
+    
     
     @IBOutlet weak var SunriseLabel: UILabel!
     
     @IBOutlet weak var SunsetLabel: UILabel!
+    
+    @IBOutlet weak var adressLabel: UILabel!
+    
+    @IBAction func getCurrentPlace(_ sender: Any) {
+        placesClient.currentPlace(callback: { (placeLikelihoodList, error) -> Void in
+            if let error = error {
+                print("Current Place error: \(error.localizedDescription)")
+                return
+            }
+            
+            self.adressLabel.text = ""
+            
+            if let placeLikelihoodList = placeLikelihoodList {
+                let place = placeLikelihoodList.likelihoods.first?.place
+                if let place = place {
+                    self.adressLabel.text = place.formattedAddress?.components(separatedBy: ", ")
+                        .joined(separator: "\n")
+                }
+            }
+        })
+    }
+    
     
     struct Result : Codable {
         let results : Sun
@@ -27,7 +53,25 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+         placesClient = GMSPlacesClient.shared()
+   
+        let locationManager = CLLocationManager()
+        
+        locationManager.requestWhenInUseAuthorization()
+        
+        if CLLocationManager.locationServicesEnabled(){
+            locationManager.delegate = self
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.startUpdatingLocation()
+        }
+        
+        func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            if let location = locations.first {
+                print(location.coordinate.latitude)
+                print(location.coordinate.longitude)
+            }
+        }
         
         // 1
         let urlString = "https://api.sunrise-sunset.org/json?lat=49.841952&lng=24.0315921&date=today"
